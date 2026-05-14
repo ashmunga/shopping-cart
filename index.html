@@ -2,17 +2,633 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Color Changer</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+    <title>Luminous | Product Gallery with Theme Toggle</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        transition:
+          background-color 0.25s ease,
+          border-color 0.2s ease,
+          color 0.2s ease;
+      }
+
+      /* CSS Variables for Light & Dark themes */
+      :root {
+        /* Light theme (default) */
+        --bg-page: #f8fafc;
+        --surface-card: #ffffff;
+        --text-primary: #0f172a;
+        --text-secondary: #334155;
+        --accent-color: #3b82f6;
+        --accent-hover: #2563eb;
+        --border-light: #e2e8f0;
+        --shadow-sm:
+          0 10px 25px -5px rgba(0, 0, 0, 0.05),
+          0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        --shadow-hover: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
+        --tag-bg: #f1f5f9;
+        --price-color: #0f172a;
+        --transition-default: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      }
+
+      body.dark {
+        --bg-page: #0f172a;
+        --surface-card: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --accent-color: #60a5fa;
+        --accent-hover: #93c5fd;
+        --border-light: #334155;
+        --shadow-sm: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        --shadow-hover: 0 25px 35px -12px rgba(0, 0, 0, 0.5);
+        --tag-bg: #334155;
+        --price-color: #facc15;
+      }
+
+      body {
+        background-color: var(--bg-page);
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          sans-serif;
+        line-height: 1.5;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem 1.5rem;
+      }
+
+      /* Container & Gallery Layout */
+      .gallery-container {
+        max-width: 1280px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      /* Header with theme toggle */
+      .gallery-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        margin-bottom: 3rem;
+        gap: 1rem;
+      }
+
+      .title-section h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        letter-spacing: -0.02em;
+      }
+
+      .title-section p {
+        color: var(--text-secondary);
+        margin-top: 0.3rem;
+        font-weight: 500;
+      }
+
+      /* Theme Toggle Switch - modern pill */
+      .theme-switch-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .theme-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 30px;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        border-radius: 34px;
+        transition: 0.3s;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "☀️";
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 26px;
+        width: 26px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        border-radius: 50%;
+        transition: 0.3s;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      input:checked + .slider {
+        background-color: #1e293b;
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(30px);
+        content: "🌙";
+      }
+
+      /* Card Gallery Grid */
+      .card-gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        justify-content: center;
+        align-items: stretch;
+      }
+
+      /* Product Card */
+      .product-card {
+        flex: 1;
+        min-width: 260px;
+        max-width: 320px;
+        background: var(--surface-card);
+        border-radius: 1.75rem;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(0px);
+        transform: translateY(0px);
+        transition: var(--transition-default);
+        border: 1px solid var(--border-light);
+        display: flex;
+        flex-direction: column;
+        opacity: 0; /* initially hidden for fade-in, will be revealed by JS on load */
+        animation: fadeInUp 0.6s ease forwards;
+      }
+
+      /* staggered animation delays */
+      .product-card:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .product-card:nth-child(2) {
+        animation-delay: 0.3s;
+      }
+      .product-card:nth-child(3) {
+        animation-delay: 0.5s;
+      }
+
+      @keyframes fadeInUp {
+        0% {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Hover Effects: Lift, scale, shadow, inner glow */
+      .product-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--accent-color);
+      }
+
+      /* Image container with overlay & zoom effect */
+      .card-img {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(145deg, #eef2ff, #e2e8f0);
+        height: 240px;
+      }
+
+      body.dark .card-img {
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+      }
+
+      .card-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        display: block;
+      }
+
+      .product-card:hover .card-img img {
+        transform: scale(1.1);
+      }
+
+      /* Badge overlay (optional style) */
+      .card-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(4px);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.3rem 0.8rem;
+        border-radius: 40px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+      }
+
+      body.dark .card-badge {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(5px);
+      }
+
+      /* Card content */
+      .card-content {
+        padding: 1.5rem 1.25rem 1.5rem 1.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .product-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.3px;
+      }
+
+      .product-desc {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        line-height: 1.45;
+        margin-bottom: 1.2rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .price-row {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        margin-bottom: 1.1rem;
+        flex-wrap: wrap;
+      }
+
+      .current-price {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--price-color);
+      }
+
+      .old-price {
+        font-size: 0.85rem;
+        text-decoration: line-through;
+        color: var(--text-secondary);
+        opacity: 0.7;
+      }
+
+      .product-tag {
+        background: var(--tag-bg);
+        display: inline-block;
+        padding: 0.2rem 0.75rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--accent-color);
+        letter-spacing: 0.3px;
+      }
+
+      .btn-details {
+        margin-top: auto;
+        background: transparent;
+        border: 1.5px solid var(--accent-color);
+        border-radius: 60px;
+        padding: 0.65rem 0;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--accent-color);
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background-color: transparent;
+        margin-top: 1rem;
+      }
+
+      .btn-details:hover {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+        transform: scale(0.98);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      body.dark .btn-details:hover {
+        background: var(--accent-color);
+        color: #0f172a;
+      }
+
+      /* small footer */
+      .footer-note {
+        margin-top: 3rem;
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        opacity: 0.8;
+        border-top: 1px solid var(--border-light);
+        padding-top: 2rem;
+        width: 100%;
+      }
+
+      /* responsive adjustments */
+      @media (max-width: 760px) {
+        .gallery-header {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        .product-card {
+          min-width: 260px;
+        }
+        .title-section h1 {
+          font-size: 1.8rem;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Color Changer</h1>
-      <div id="color-box"></div>
-      <button id="change-color-btn">Change Color</button>
+    <div class="gallery-container">
+      <div class="gallery-header">
+        <div class="title-section">
+          <h1>✦ luminous studio</h1>
+          <p>Essentials that inspire · hover to reveal magic</p>
+        </div>
+        <div class="theme-switch-wrapper">
+          <span class="theme-label">🌿 light</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="themeToggleCheckbox" />
+            <span class="slider"></span>
+          </label>
+          <span class="theme-label">🌙 dark</span>
+        </div>
+      </div>
+
+      <!-- 3-Card Product Gallery -->
+      <div class="card-gallery" id="productGallery">
+        <!-- card 1: Aurora Headphones -->
+        <div class="product-card">
+          <div class="card-img">
+            <img
+              src="https://picsum.photos/id/20/400/300"
+              alt="Minimalist headphones"
+              loading="lazy"
+            />
+            <div class="card-badge">new release</div>
+          </div>
+          <div class="card-content">
+            <h3 class="product-title">Aurora Headphones</h3>
+            <p class="product-desc">
+              Adaptive noise cancellation, 40h battery life, spatial audio with
+              rich, immersive soundstage.
+            </p>
+            <div class="price-row">
+              <span class="current-price">$249</span>
+              <span class="old-price">$329</span>
+            </div>
+            <div class="product-tag">wireless · hi-res</div>
+            <button class="btn-details" data-product="Aurora Headphones">
+              explore →
+            </button>
+          </div>
+        </div>
+
+        <!-- card 2: Eclipse Smartwatch -->
+        <div class="product-card">
+          <div class="card-img">
+            <img
+              src="https://picsum.photos/id/96/400/300"
+              alt="Smartwatch on gradient background"
+              loading="lazy"
+            />
+            <div class="card-badge">best seller</div>
+          </div>
+          <div class="card-content">
+            <h3 class="product-title">Eclipse Watch</h3>
+            <p class="product-desc">
+              Health tracking, always-on AMOLED, 7-day battery, and customizable
+              fluid straps. Precision crafted.
+            </p>
+            <div class="price-row">
+              <span class="current-price">$189</span>
+              <span class="old-price">$249</span>
+            </div>
+            <div class="product-tag">activity · gps</div>
+            <button class="btn-details" data-product="Eclipse Watch">
+              explore →
+            </button>
+          </div>
+        </div>
+
+        <!-- card 3: Aether Speaker -->
+        <div class="product-card">
+          <div class="card-img">
+            <img
+              src="https://picsum.photos/id/26/400/300"
+              alt="Minimalist modern speaker"
+              loading="lazy"
+            />
+            <div class="card-badge">limited</div>
+          </div>
+          <div class="card-content">
+            <h3 class="product-title">Aether Speaker</h3>
+            <p class="product-desc">
+              360° sound, waterproof design, dual drivers & deep bass. Perfect
+              for any atmosphere.
+            </p>
+            <div class="price-row">
+              <span class="current-price">$159</span>
+              <span class="old-price">$199</span>
+            </div>
+            <div class="product-tag">portable · bluetooth</div>
+            <button class="btn-details" data-product="Aether Speaker">
+              explore →
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="footer-note">
+        ✨ hover over cards · smooth scaling & shadow · theme preserved
+      </div>
     </div>
 
-    <script src="interactivity.js"></script>
+    <script>
+      (function () {
+        // ---------- THEME TOGGLE (light/dark) with localStorage persistence ----------
+        const themeToggleCheckbox = document.getElementById(
+          "themeToggleCheckbox",
+        );
+        const body = document.body;
+
+        // Check for saved user preference, otherwise default to 'light' but respect system if needed? we stick to light default.
+        const storedTheme = localStorage.getItem("theme");
+        if (storedTheme === "dark") {
+          body.classList.add("dark");
+          if (themeToggleCheckbox) themeToggleCheckbox.checked = true;
+        } else if (storedTheme === "light") {
+          body.classList.remove("dark");
+          if (themeToggleCheckbox) themeToggleCheckbox.checked = false;
+        } else {
+          // No stored: default light (our root is light)
+          body.classList.remove("dark");
+          if (themeToggleCheckbox) themeToggleCheckbox.checked = false;
+        }
+
+        // toggle theme on checkbox change
+        if (themeToggleCheckbox) {
+          themeToggleCheckbox.addEventListener("change", function (e) {
+            if (this.checked) {
+              body.classList.add("dark");
+              localStorage.setItem("theme", "dark");
+            } else {
+              body.classList.remove("dark");
+              localStorage.setItem("theme", "light");
+            }
+          });
+        }
+
+        // ---------- FADE-IN ANIMATION already handled by CSS keyframes (cards start opacity:0, animated on load) ----------
+        // No extra JS needed because classes .product-card have fadeInUp animation automatically.
+        // However to ensure if images lazy-load not blocking, we leave it. But any reflow? perfect.
+
+        // Additional micro-interaction: button "explore" shows an alert / sweet fade toast effect to demonstrate interactive feedback
+        // But we want to keep product-like demo, small alert with product info; it's user-friendly.
+        const detailButtons = document.querySelectorAll(".btn-details");
+        detailButtons.forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const productName =
+              btn.getAttribute("data-product") || "this product";
+            // create a subtle micro notification with modern style (no intrusive big alert)
+            // but alert is okay; but we create a lightweight floating message that respects theme? We prefer a smooth "toast"
+            showFloatingMessage(
+              `✨ exploring ${productName} — special edition ready`,
+            );
+          });
+        });
+
+        // Helper: fancy floating message fade-out that respects theme (dark/light aware)
+        function showFloatingMessage(msg) {
+          // remove existing toast if present to avoid stacking
+          const existingToast = document.querySelector(".custom-toast-msg");
+          if (existingToast) existingToast.remove();
+
+          const toast = document.createElement("div");
+          toast.className = "custom-toast-msg";
+          toast.innerText = msg;
+          // dynamic style depends on current theme variables
+          toast.style.position = "fixed";
+          toast.style.bottom = "25px";
+          toast.style.left = "50%";
+          toast.style.transform = "translateX(-50%)";
+          toast.style.backgroundColor =
+            getComputedStyle(document.body)
+              .getPropertyValue("--surface-card")
+              .trim() || "#ffffff";
+          toast.style.color =
+            getComputedStyle(document.body)
+              .getPropertyValue("--text-primary")
+              .trim() || "#0f172a";
+          toast.style.padding = "0.75rem 1.5rem";
+          toast.style.borderRadius = "60px";
+          toast.style.fontWeight = "500";
+          toast.style.fontSize = "0.85rem";
+          toast.style.boxShadow = "0 15px 30px -12px rgba(0,0,0,0.2)";
+          toast.style.border = `1px solid var(--border-light)`;
+          toast.style.backdropFilter = "blur(8px)";
+          toast.style.zIndex = "999";
+          toast.style.fontFamily = "inherit";
+          toast.style.letterSpacing = "0.3px";
+          // add slight animation
+          toast.style.animation = "fadeInUp 0.2s ease";
+          document.body.appendChild(toast);
+
+          // remove after 2.2 seconds
+          setTimeout(() => {
+            if (toast && toast.parentNode) {
+              toast.style.opacity = "0";
+              toast.style.transition = "opacity 0.2s";
+              setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+              }, 200);
+            }
+          }, 2100);
+        }
+
+        // For cards, add any additional hover effects or ensure images load gracefully
+        // Additionally, we can add a small ripple or 'view' effect, but we already have hover transform & scale
+        // Also make sure that theme toggle updates any additional dynamic elements but everything uses CSS variables.
+
+        // Optional: enhance hover on card badges or price colors dynamic adjustments - already done with variables.
+        // The initial fade-in might clash on slower connections? but CSS animations ensure that after dom ready they animate.
+        // Also because images might load later - cards still visible with backdrop.
+
+        // As a bonus: script to ensure that if the images fail (picsum stable), but if not, background gradients are fine.
+        // Add alt properly.
+
+        // Re-run theme-styling for toast? Not needed because we use computed style on toast creation.
+        // For correctness, we also want to adjust any existing toasts when theme toggled? but toast disappears quickly.
+        // Perfect.
+
+        // If someone toggles theme while hover effects are active, everything responds dynamically via CSS variables.
+        // Also provide additional user-friendly "card click" effect? but button is explicit.
+        // To preserve fade-in animation for any new dynamically added cards? not needed; the page static.
+        // But we also want to ensure all cards apply fade-in on load — they do. If the page loads with images, animations play perfectly.
+        // Additionally we need to handle any extra cases: touch devices have hover simulation, fine.
+
+        // Add small keyboard accessibility: theme toggle role, but ok.
+        // Let's ensure that the page never has layout shift due to images: we set fixed height on .card-img
+        // Provide additional hover description: product-card::after subtle glow? Already border.
+
+        // For card image transformation clarity: The hover scale on image only within img container.
+        // Additionally add small transition on button hover.
+
+        console.log(
+          "Gallery ready — light/dark toggle, animated product cards with hover effects ✨",
+        );
+      })();
+    </script>
   </body>
 </html>
